@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Relay — Personalised Feedback</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--c:#1D9E75;--cl:#E1F5EE;--cd:#085041;}
+body{background:#f0f0ee;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.shell{width:100%;max-width:420px;min-height:100vh;background:#fff;display:flex;flex-direction:column;position:relative;}
+@media(min-width:440px){.shell{margin:16px auto;min-height:auto;border-radius:22px;overflow:hidden;border:0.5px solid #d0d0cc;min-height:700px;}}
+.scr{display:none;flex-direction:column;flex:1;}
+.scr.on{display:flex;}
+.hbar{padding:16px 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--c);}
+.hcont{padding:0 16px 18px;background:var(--c);}
+.htitle{font-size:20px;font-weight:500;color:#fff;margin-bottom:3px;line-height:1.2;}
+.hsub{font-size:13px;color:rgba(255,255,255,0.7);}
+.hbadge{font-size:10px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.25);}
+.bbtn{background:none;border:none;color:rgba(255,255,255,0.85);font-size:13px;cursor:pointer;padding:0;}
+.logo-row{display:flex;align-items:center;gap:8px;}
+.chain{display:flex;align-items:center;}
+.d1{width:9px;height:9px;border-radius:50%;background:#fff;}
+.d2{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.55);}
+.d3{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.25);}
+.cl{width:6px;height:2px;background:rgba(255,255,255,0.4);}
+.lname{font-size:15px;font-weight:500;color:#fff;}
+.cnbadge{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+.body{padding:16px;flex:1;overflow-y:auto;background:#fff;}
+.sec{font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:0.09em;margin:14px 0 8px;}
+.sec:first-child{margin-top:0;}
+.divider{height:0.5px;background:#eee;margin:13px 0;}
+.fg{margin-bottom:11px;}
+.fg label{display:block;font-size:11px;color:#888;margin-bottom:4px;font-weight:500;}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;border:0.5px solid #ddd;border-radius:9px;font-size:13px;color:#111;background:#fff;outline:none;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--c);}
+.fg textarea{min-height:80px;resize:none;}
+.btnp{width:100%;padding:12px;background:var(--c);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:500;cursor:pointer;margin-top:8px;}
+.btns{width:100%;padding:10px;background:none;color:#888;border:0.5px solid #ddd;border-radius:10px;font-size:13px;cursor:pointer;margin-top:7px;}
+/* ROLE CARDS */
+.rgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.rc{border-radius:13px;padding:16px 8px;text-align:center;cursor:pointer;transition:all 0.15s;border:2px solid transparent;}
+.rc:active{transform:scale(0.97);}
+.ri{width:36px;height:36px;border-radius:10px;margin:0 auto 7px;display:flex;align-items:center;justify-content:center;}
+.ri svg{width:16px;height:16px;stroke:#fff;fill:none;}
+.rlbl{font-size:12px;font-weight:600;}
+/* PREFS */
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.pc{border-radius:10px;padding:13px 11px;cursor:pointer;border:2px solid #eee;background:#f8f8f6;transition:all 0.15s;}
+.pc.psel{border-color:var(--c);background:var(--cl);}
+.pi{width:28px;height:28px;border-radius:7px;background:#e8e8e4;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+.pc.psel .pi{background:var(--c);}
+.pi svg{width:13px;height:13px;stroke:#888;fill:none;}
+.pc.psel .pi svg{stroke:#fff;}
+.plbl{font-size:12px;font-weight:600;color:#111;}
+.pdesc{font-size:10px;color:#888;margin-top:1px;line-height:1.4;}
+/* FEEDBACK */
+.fbi{border-radius:12px;padding:12px;cursor:pointer;border:0.5px solid #eee;background:#fff;margin-bottom:8px;transition:all 0.15s;position:relative;overflow:hidden;}
+.fbi:active{background:#f8f8f8;}
+.fitop{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;}
+.fifrom{font-size:13px;font-weight:600;color:#111;}
+.fitime{font-size:11px;color:#aaa;}
+.fiprev{font-size:12px;color:#666;line-height:1.5;padding-left:38px;}
+.unread{width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0;margin-left:auto;}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
+/* STATS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
+.sc2{border-radius:10px;padding:11px;text-align:center;}
+.sv{font-size:22px;font-weight:600;}
+.sl{font-size:10px;color:#888;margin-top:1px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.blbl{font-size:11px;color:#888;width:60px;flex-shrink:0;text-align:right;}
+.btrack{flex:1;height:7px;background:#f0f0ee;border-radius:4px;overflow:hidden;}
+.bfill{height:100%;border-radius:4px;}
+.bval{font-size:11px;font-weight:600;color:#111;width:32px;}
+/* PLAYER ROWS */
+.plrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid #eee;border-radius:10px;cursor:pointer;margin-bottom:7px;transition:background 0.1s;}
+.plrow:active{background:#f8f8f6;}
+.pbar-wrap{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.pbar-track{flex:1;height:4px;background:#eee;border-radius:2px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:2px;}
+/* INTEGRATIONS */
+.introw{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid #eee;border-radius:10px;margin-bottom:7px;}
+.iicon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* UPLOAD */
+.uzone{border:2px dashed #ccc;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:#f8f8f6;margin-bottom:10px;}
+.uzone svg{width:22px;height:22px;fill:none;margin-bottom:6px;stroke:#aaa;}
+.uzone p{font-size:13px;color:#888;margin-bottom:2px;}
+.uzone span{font-size:11px;color:#aaa;}
+.vwrap{background:#111;border-radius:10px;overflow:hidden;margin-bottom:10px;}
+.vwrap video{width:100%;display:block;max-height:200px;}
+/* TABS */
+.tab-row{display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap;}
+.tab{padding:7px 13px;border-radius:20px;border:2px solid #ddd;font-size:12px;font-weight:600;color:#888;cursor:pointer;background:#fff;}
+.tab.active{background:var(--c);border-color:var(--c);color:#fff;}
+.tab.ov{border-style:dashed;font-size:11px;}
+/* IBOX */
+.ibox{border-radius:0 9px 9px 0;padding:10px 13px;margin-bottom:12px;font-size:12px;line-height:1.65;}
+.mrow{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:9px;cursor:pointer;margin-bottom:6px;}
+/* VIDEO PLAYER */
+.vid-player{border-radius:12px;overflow:hidden;background:#111;margin-bottom:14px;cursor:pointer;}
+.vid-thumb{width:100%;height:185px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;position:relative;}
+.vid-lines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(255,255,255,0.02) 18px,rgba(255,255,255,0.02) 19px);}
+.vid-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+.play-circle{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;}
+.play-circle svg{width:20px;height:20px;fill:#111;margin-left:3px;}
+.vid-prog{height:3px;background:#333;}
+.vid-prog-fill{height:100%;border-radius:2px;transition:width 0.3s;}
+.vid-meta-bar{padding:9px 12px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;}
+.clip-thumbs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.cti{width:68px;height:42px;border-radius:7px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;border:2px solid transparent;cursor:pointer;position:relative;flex-shrink:0;}
+.cti svg{width:11px;height:11px;fill:rgba(255,255,255,0.6);}
+.cti-lbl{font-size:10px;color:#888;margin-top:3px;text-align:center;}
+/* REC */
+.rec-btn{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rec-btn.idle{background:#FAECE7;}
+.rec-btn.rec{background:#E24B4A;animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.rec-timer{font-size:15px;font-weight:600;color:#111;min-width:40px;text-align:center;}
+/* STAT INPUTS */
+.sinputs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}
+.sinp{border:0.5px solid #ddd;border-radius:8px;padding:9px 10px;}
+.sinp label{display:block;font-size:10px;color:#888;margin-bottom:4px;font-weight:500;}
+.sinp input{width:100%;border:none;outline:none;font-size:16px;font-weight:600;color:#111;background:transparent;}
+/* ENGAGEMENT */
+.eng-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f0f0ee;}
+.eng-row:last-child{border-bottom:none;}
+/* COACH CARD */
+.cfbi{border-radius:10px;padding:11px;border:0.5px solid #eee;background:#fff;margin-bottom:7px;}
+.cfbi:active{background:#f8f8f6;}
+/* SPINNER */
+.spinner{width:28px;height:28px;border:2px solid #eee;border-top-color:var(--c);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* IPILL */
+.ipill{border-radius:9px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+/* HUDL CLIP */
+.cliprow{display:flex;align-items:center;gap:9px;padding:8px 10px;border:0.5px solid #eee;border-radius:9px;cursor:pointer;margin-bottom:7px;}
+.cliprow.csel{border-color:var(--c);background:var(--cl);}
+.cthumb{width:44px;height:28px;border-radius:5px;background:#111;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cthumb svg{width:11px;height:11px;fill:rgba(255,255,255,0.7);}
+.ck{width:16px;height:16px;border-radius:50%;border:1.5px solid #ccc;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.ck.on{background:var(--c);border-color:var(--c);}
+.ck svg{width:8px;height:8px;display:none;}
+.ck.on svg{display:block;}
+/* SIGNOUT */
+.soblock{background:#FCEBEB;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-top:8px;}
+/* DEMO CARD */
+.dcard{border-radius:14px;overflow:hidden;cursor:pointer;border:2px solid transparent;}
+.dcard:active{opacity:0.9;}
+/* NAV */
+.nav{display:flex;border-top:0.5px solid #eee;background:#fff;flex-shrink:0;}
+.ni{flex:1;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;}
+.ni svg{width:17px;height:17px;stroke:#ccc;fill:none;}
+.ni.act svg{stroke:var(--c);}
+.ni.actc svg{stroke:#534AB7;}
+.ni span{font-size:10px;color:#ccc;}
+.ni.act span{color:var(--c);}
+.ni.actc span{color:#534AB7;}
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;transition:opacity 0.25s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;}
+/* SWATCH */
+.sw{width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:3px solid transparent;}
+.sw.active{border-color:#111;}
+</style>
+</head>
+<body>
+<div class="shell" id="app">
+
+<!-- DEMO SELECTOR -->
+<div id="s-demo" class="scr on">
+  <div style="padding:28px 20px 16px;background:#111210;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div>
+      <span class="lname">Relay</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(180,255,80,0.15);color:#b4ff50;border:1px solid rgba(180,255,80,0.2);margin-left:4px;">Demo</span>
+    </div>
+    <div style="font-size:22px;font-weight:500;color:#fff;line-height:1.2;margin-bottom:6px;">Choose a club<br>to explore</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">Each club is pre-configured with sport-specific settings and terminology.</div>
+  </div>
+  <div class="body" style="background:#111210;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 16px;">
+      <div class="dcard" onclick="loadClub('football')" style="border-color:rgba(29,158,117,0.4);">
+        <div style="padding:20px 16px 14px;background:#1D9E75;display:flex;flex-direction:column;gap:5px;">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">Football</div>
+          <div style="font-size:18px;font-weight:600;color:#fff;">Demo FC</div>
+        </div>
+        <div style="padding:10px 14px;background:#085041;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;color:rgba(255,255,255,0.7);">Hudl · Wyscout</span><span style="font-size:16px;color:#fff;">→</span></div>
+      </div>
+      <div class="dcard" onclick="loadClub('cricket')" style="border-color:rgba(27,69,143,0.4);">
+        <div style="padding:20px 16px 14px;background:#1B458F;display:flex;flex-direction:column;gap:5px;">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase;">Cricket</div>
+          <div style="font-size:18px;font-weight:600;color:#fff;">County CC</div>
+        </div>
+        <div style="padding:10px 14px;background:#0C2E6B;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:11px;color:rgba(255,255,255,0.7);">NVplay · PlayCricket</span><span style="font-size:16px;color:#fff;">→</span></div>
+      </div>
+    </div>
+    <div style="background:#1a1918;border-radius:12px;padding:13px 16px;">
+      <div style="font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:9px;">In a real deployment</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:18px;height:18px;border-radius:4px;background:#1D9E75;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:#fff;">1</div><span style="font-size:12px;color:#666;">Club purchases Relay → admin selects sport & branding</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:18px;height:18px;border-radius:4px;background:#1D9E75;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:#fff;">2</div><span style="font-size:12px;color:#666;">Admin creates accounts — role pre-assigned per user</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:18px;height:18px;border-radius:4px;background:#1D9E75;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:#fff;">3</div><span style="font-size:12px;color:#666;">Each user logs in to a fully sport-configured environment</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="s-login" class="scr">
+  <div class="hbar" style="background:var(--c);">
+    <div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span><span class="cnbadge" id="login-club" style="margin-left:4px;">Demo FC</span></div>
+    <button class="bbtn" onclick="goS('s-demo')" style="margin-left:auto;">← Clubs</button>
+  </div>
+  <div class="hcont" style="background:var(--c);"><div class="htitle" id="login-sport">Football</div><div class="hsub" id="login-sub">Demo FC · Tap your role to sign in</div></div>
+  <div class="body" style="padding-top:16px;">
+    <div style="background:#f0f8f4;border-radius:9px;padding:10px 13px;margin-bottom:14px;font-size:12px;color:#085041;line-height:1.6;"><strong>Demo mode:</strong> tap any role card to sign in instantly. In a real deployment each user has their own email & password with their role pre-assigned.</div>
+    <div class="sec" style="margin-top:0;">Sign in as</div>
+    <div class="rgrid">
+      <div class="rc" style="background:#E6F1FB;border-color:#B5D4F4;" onclick="signInAs('analyst')">
+        <div class="ri" style="background:#185FA5;"><svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="rlbl" style="color:#0C447C;">Analyst</div>
+        <div style="font-size:9px;color:#185FA5;margin-top:3px;">Tap to sign in</div>
+      </div>
+      <div class="rc" id="rc-player" style="background:var(--cl);border-color:var(--c);" onclick="signInAs('player')">
+        <div class="ri" style="background:var(--c);"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div class="rlbl" id="rc-plbl" style="color:var(--cd);">Player</div>
+        <div style="font-size:9px;color:var(--c);margin-top:3px;">Tap to sign in</div>
+      </div>
+      <div class="rc" style="background:#EEEDFE;border-color:#CECBF6;" onclick="signInAs('coach')">
+        <div class="ri" style="background:#534AB7;"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="rlbl" style="color:#3C3489;">Coach</div>
+        <div style="font-size:9px;color:#534AB7;margin-top:3px;">Tap to sign in</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNING IN -->
+<div id="s-signing" class="scr">
+  <div class="hbar" id="signing-hbar" style="background:var(--c);"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div></div>
+  <div class="body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;">
+    <div class="spinner" id="sign-spinner"></div>
+    <p style="font-size:16px;font-weight:500;margin-bottom:6px;" id="si-lbl">Signing in...</p>
+    <p style="font-size:13px;color:#888;" id="si-sub">Loading your environment</p>
+  </div>
+</div>
+
+<!-- PLAYER PREFS -->
+<div id="s-pprefs" class="scr">
+  <div class="hbar" style="background:var(--c);"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;">Player</span></div>
+  <div class="hcont" style="background:var(--c);"><div class="htitle">Your preferences</div><div class="hsub">How would you like to receive feedback?</div></div>
+  <div class="body">
+    <div class="pgrid">
+      <div class="pc psel" id="pp-video" onclick="togPP('video')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div class="plbl">Video clips</div><div class="pdesc">Annotated footage</div></div>
+      <div class="pc" id="pp-text" onclick="togPP('text')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div><div class="plbl">Written report</div><div class="pdesc">Detailed analysis</div></div>
+      <div class="pc" id="pp-voice" onclick="togPP('voice')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div><div class="plbl">Voice note</div><div class="pdesc">Audio feedback</div></div>
+      <div class="pc psel" id="pp-stats" onclick="togPP('stats')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="plbl">Stats & graphs</div><div class="pdesc">Visual breakdowns</div></div>
+    </div>
+    <button class="btnp" onclick="savePP()">Save preferences</button>
+    <div class="divider"></div>
+    <div class="soblock"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#791F1F;">Sign out</div><div style="font-size:11px;color:#A32D2D;">Return to club selector</div></div><button onclick="goS('s-demo')" style="padding:5px 12px;background:#A32D2D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Sign out</button></div>
+  </div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-phome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-pfblist')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni act"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- PLAYER HOME -->
+<div id="s-phome" class="scr">
+  <div class="hbar" style="background:var(--c);"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;" id="ph-badge">Player</span></div>
+  <div class="hcont" style="background:var(--c);">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div class="htitle" id="ph-name">Jamie Mitchell</div><div class="hsub">3 new feedback items</div></div>
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;" id="ph-num">#9</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="ipill" style="background:var(--cl);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p style="font-size:12px;color:var(--cd);">Receiving: <strong id="pp-summary">Video clips, Stats &amp; graphs</strong></p>
+      <span style="margin-left:auto;font-size:11px;color:var(--c);cursor:pointer;font-weight:600;" onclick="goS('s-pprefs')">Edit</span>
+    </div>
+    <div class="sec">Recent feedback</div>
+    <div class="fbi" style="border-left:3px solid #185FA5;" onclick="goS('s-pvideo')">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="ph-an-av">SA</div><div style="flex:1;"><div class="fifrom" id="ph-an-name">Sarah Adams · Analyst</div><div class="fitime">Today, 9:14am</div></div><span class="badge" style="background:#E6F1FB;color:#0C447C;">Video</span><div class="unread"></div></div>
+      <div class="fiprev" id="ph-fb1">Defensive positioning — 2nd half. 3 clips tagged.</div>
+    </div>
+    <div class="fbi" style="border-left:3px solid #534AB7;" onclick="goS('s-pstats')">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="ph-an-av2">SA</div><div style="flex:1;"><div class="fifrom" id="ph-an-name2">Sarah Adams · Analyst</div><div class="fitime">Yesterday</div></div><span class="badge" style="background:#EEEDFE;color:#3C3489;">Stats</span><div class="unread"></div></div>
+      <div class="fiprev" id="ph-fb2">Weekly breakdown — pass accuracy up 4%.</div>
+    </div>
+    <div class="fbi" style="border-left:3px solid #BA7517;">
+      <div class="fitop"><div class="av" style="background:#534AB7;" id="ph-co-av">MC</div><div style="flex:1;"><div class="fifrom" id="ph-co-name">Mark Clarke · Coach</div><div class="fitime">Mon 10 Mar</div></div><span class="badge" style="background:#EAF3DE;color:#27500A;">Text</span></div>
+      <div class="fiprev" id="ph-fb3">Good work on the press. Keep shape when transitioning.</div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="ni act"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-pfblist')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni" onclick="goS('s-pprefs')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- PLAYER FEEDBACK LIST -->
+<div id="s-pfblist" class="scr">
+  <div class="hbar" style="background:var(--c);"><button class="bbtn" onclick="goS('s-phome')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">My feedback</span></div>
+  <div class="body">
+    <div class="ipill" style="background:var(--cl);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:12px;color:var(--cd);">Receiving: <strong id="pp-summary2">Video clips, Stats &amp; graphs</strong></p><span style="margin-left:auto;font-size:11px;color:var(--c);cursor:pointer;font-weight:600;" onclick="goS('s-pprefs')">Edit</span></div>
+    <div class="sec">This week</div>
+    <div class="fbi" style="border-left:3px solid #185FA5;" onclick="goS('s-pvideo')">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="pfb-an-av">SA</div><div style="flex:1;"><div class="fifrom" id="pfb-an-name">Sarah Adams · Analyst</div><div class="fitime">Today, 9:14am</div></div><span class="badge" style="background:#E6F1FB;color:#0C447C;">Video</span><div class="unread"></div></div>
+      <div class="fiprev" id="pfb-fb1">Defensive positioning — 2nd half. 3 clips tagged.</div>
+    </div>
+    <div class="fbi" style="border-left:3px solid #534AB7;" onclick="goS('s-pstats')">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="pfb-an-av2">SA</div><div style="flex:1;"><div class="fifrom" id="pfb-an-name2">Sarah Adams · Analyst</div><div class="fitime">Yesterday</div></div><span class="badge" style="background:#EEEDFE;color:#3C3489;">Stats</span><div class="unread"></div></div>
+      <div class="fiprev" id="pfb-fb2">Weekly breakdown — pass accuracy up 4%.</div>
+    </div>
+    <div class="fbi" style="border-left:3px solid #BA7517;">
+      <div class="fitop"><div class="av" style="background:#534AB7;" id="pfb-co-av">MC</div><div style="flex:1;"><div class="fifrom" id="pfb-co-name">Mark Clarke · Coach</div><div class="fitime">Mon 10 Mar</div></div><span class="badge" style="background:#EAF3DE;color:#27500A;">Text</span></div>
+      <div class="fiprev" id="pfb-fb3">Good work on the press. Keep shape when transitioning.</div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-phome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni act"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni" onclick="goS('s-pprefs')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- PLAYER VIDEO FEEDBACK -->
+<div id="s-pvideo" class="scr">
+  <div class="hbar" style="background:#185FA5;"><button class="bbtn" onclick="goS('s-pfblist')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Video feedback</span><span class="badge" style="background:#E6F1FB;color:#0C447C;">Video</span></div>
+  <div class="hcont" style="background:#185FA5;"><div class="htitle" style="font-size:15px;" id="vfb-title">Defensive positioning</div><div class="hsub" id="vfb-sub">Sarah Adams · Today</div></div>
+  <div class="body">
+    <div class="vid-player" onclick="toggleVid()">
+      <div class="vid-thumb"><div class="vid-lines"></div><div class="vid-overlay"><div class="play-circle" id="vbtn"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><div style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:500;" id="vlbl">Clip 1 of 3 · 0:18</div></div></div>
+      <div class="vid-prog"><div class="vid-prog-fill" id="vpf" style="width:0%;background:#185FA5;"></div></div>
+      <div class="vid-meta-bar"><span style="font-size:12px;color:#f0ede6;font-weight:500;" id="vcname">54:12 — defensive shape</span><span style="font-size:11px;color:#888;" id="vtime">0:00 / 0:18</span></div>
+    </div>
+    <div class="clip-thumbs" id="vfb-thumbs"></div>
+    <div class="sec">Analyst notes</div>
+    <div class="ibox" style="background:#EBF3FC;border-left:3px solid #185FA5;" id="vfb-notes"></div>
+    <div class="sec">Tagged moments</div>
+    <div id="vfb-moments"></div>
+  </div>
+</div>
+
+<!-- PLAYER STATS FEEDBACK -->
+<div id="s-pstats" class="scr">
+  <div class="hbar" style="background:#534AB7;"><button class="bbtn" onclick="goS('s-pfblist')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Stats feedback</span><span class="badge" style="background:#EEEDFE;color:#3C3489;">Stats</span></div>
+  <div class="hcont" style="background:#534AB7;"><div class="htitle" style="font-size:15px;" id="sfb-title">Performance breakdown</div><div class="hsub" id="sfb-sub">Sarah Adams · Yesterday</div></div>
+  <div class="body">
+    <div class="sg" id="sfb-cards"></div>
+    <div class="sec" id="sfb-bar-title">Zone breakdown</div>
+    <div id="sfb-bars" style="margin-bottom:13px;"></div>
+    <div class="ibox" style="background:#EEEDFE;border-left:3px solid #534AB7;" id="sfb-notes"></div>
+  </div>
+</div>
+
+<!-- ANALYST HOME -->
+<div id="s-ahome" class="scr">
+  <div class="hbar" style="background:#185FA5;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;" id="ah-badge">Analyst</span></div>
+  <div class="hcont" style="background:#185FA5;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div class="htitle" id="ah-name">Sarah Adams</div><div class="hsub" id="ah-sub">2 players awaiting feedback</div></div>
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;" id="ah-av">SA</div>
+    </div>
+  </div>
+  <div class="body" style="flex:1;">
+    <div class="sec" style="margin-top:0;">Players</div>
+    <div id="ah-players"></div>
+    <div style="background:#f8f8f6;border-radius:10px;padding:12px 14px;margin-top:4px;">
+      <div class="sec" style="margin-top:0;">Feedback engagement this week</div>
+      <div id="ah-engagement"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec">Integrations</div>
+    <div id="ah-integrations"></div>
+  </div>
+  <div class="nav">
+    <button class="ni act"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-upload')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></button>
+    <button class="ni" onclick="goS('s-asettings')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
+  </div>
+</div>
+
+<!-- ANALYST SETTINGS -->
+<div id="s-asettings" class="scr">
+  <div class="hbar" style="background:#185FA5;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;">Analyst</span></div>
+  <div class="hcont" style="background:#185FA5;"><div class="htitle">Club settings</div><div class="hsub">Manage your configuration</div></div>
+  <div class="body">
+    <div class="fg"><label>Club name</label><input type="text" id="club-name-in" value="Demo FC"/></div>
+    <div class="fg"><label>Sport</label><select id="sport-sel"><option value="football" selected>Football</option><option value="cricket">Cricket</option><option value="rugby">Rugby</option><option value="basketball">Basketball</option></select></div>
+    <div class="sec">Club colour</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:8px 0 14px;" id="swatches"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><label style="font-size:12px;color:#666;">Custom</label><input type="color" id="custom-col" value="#1D9E75" oninput="applyColour(this.value)" style="width:36px;height:36px;border-radius:8px;border:0.5px solid #ddd;padding:2px;cursor:pointer;"><span style="font-size:12px;color:#666;" id="hex-lbl">#1D9E75</span></div>
+    <div class="divider"></div>
+    <div class="soblock"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#791F1F;">Sign out</div><div style="font-size:11px;color:#A32D2D;">Return to club selector</div></div><button onclick="goS('s-demo')" style="padding:5px 12px;background:#A32D2D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Sign out</button></div>
+  </div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-ahome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-upload')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Upload</span></button>
+    <button class="ni act"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div id="s-upload" class="scr">
+  <div class="hbar" style="background:#185FA5;"><button class="bbtn" onclick="goS('s-ahome')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Send feedback</span></div>
+  <div class="hcont" style="background:#185FA5;"><div style="display:flex;align-items:center;gap:10px;" id="upload-hdr"></div></div>
+  <div class="body">
+    <div class="sec" style="margin-top:0;">Player</div>
+    <div id="upload-player-btns" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <div class="sec">Format</div>
+    <div class="tab-row" id="upload-tabs"></div>
+    <div id="upload-area"></div>
+    <button class="btnp" onclick="doSend()">Send feedback ↗</button>
+    <button class="btns" onclick="goS('s-hudl-intro')">Import from Hudl instead</button>
+  </div>
+</div>
+
+<!-- HUDL INTRO -->
+<div id="s-hudl-intro" class="scr">
+  <div class="hbar" style="background:#111;"><button class="bbtn" onclick="goS('s-ahome')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Connect Hudl</span></div>
+  <div class="body" style="text-align:center;padding-top:26px;">
+    <div style="width:50px;height:50px;border-radius:14px;background:#FF6B00;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+    <h2 style="font-size:17px;font-weight:600;margin-bottom:6px;">Hudl</h2>
+    <p style="font-size:13px;color:#888;line-height:1.65;margin-bottom:20px;max-width:260px;margin-left:auto;margin-right:auto;">Connect your Hudl account to import playlists and clips directly into Relay.</p>
+    <div style="text-align:left;background:#f8f8f6;border-radius:10px;padding:13px;margin-bottom:16px;">
+      <div class="sec" style="margin-top:0;">What you get</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:13px;">Browse match playlists & clips</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:13px;">Attach clips to player feedback</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:13px;">Auto-sync new playlists</span></div>
+      </div>
+    </div>
+    <button class="btnp" style="background:#FF6B00;" onclick="goS('s-hudl-login')">Continue to Hudl →</button>
+    <button class="btns" onclick="goS('s-ahome')">Cancel</button>
+  </div>
+</div>
+
+<!-- HUDL LOGIN -->
+<div id="s-hudl-login" class="scr">
+  <div class="hbar" style="background:#111;"><button class="bbtn" onclick="goS('s-hudl-intro')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Hudl sign in</span></div>
+  <div class="body" style="padding-top:22px;">
+    <div style="text-align:center;margin-bottom:18px;"><div style="width:36px;height:36px;border-radius:9px;background:#FF6B00;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><p style="font-size:13px;color:#888;">Authorise Relay to access your Hudl account.</p></div>
+    <div class="fg"><label>Hudl email</label><input type="email" value="sarah.adams@club.com"/></div>
+    <div class="fg"><label>Password</label><input type="password" value="password"/></div>
+    <div style="background:#FAEEDA;border-radius:9px;padding:9px 12px;display:flex;gap:8px;margin:9px 0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#633806" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:12px;color:#633806;line-height:1.5;">Relay only accesses playlists and clips. Your password is never stored.</p></div>
+    <button class="btnp" style="background:#FF6B00;" onclick="doHudl()">Authorise access</button>
+  </div>
+</div>
+
+<!-- HUDL CONNECTING -->
+<div id="s-hudl-conn" class="scr">
+  <div class="hbar" style="background:#111;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div></div>
+  <div class="body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;"><div class="spinner" style="border-top-color:#FF6B00;"></div><p style="font-size:14px;font-weight:600;margin-bottom:4px;" id="hmsg">Connecting to Hudl...</p><p style="font-size:12px;color:#888;">Fetching your playlists</p></div>
+</div>
+
+<!-- HUDL PLAYLISTS -->
+<div id="s-hudl-pl" class="scr">
+  <div class="hbar" style="background:#111;"><button class="bbtn" onclick="goS('s-ahome')">← Done</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Hudl playlists</span></div>
+  <div class="body">
+    <div style="display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--cl);border-radius:9px;margin-bottom:12px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--c)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:12px;color:var(--cd);font-weight:600;">Hudl connected</span></div>
+    <div class="sec">Your playlists</div>
+    <div class="plrow" onclick="goS('s-hudl-clips')"><div style="width:30px;height:30px;border-radius:7px;background:#FF6B00;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">Defensive clips — vs Rovers</div><div style="font-size:11px;color:#888;">8 clips</div></div><span style="color:#ccc;font-size:18px;">›</span></div>
+    <div class="plrow" onclick="goS('s-hudl-clips')"><div style="width:30px;height:30px;border-radius:7px;background:#FF6B00;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">Pressing triggers — training</div><div style="font-size:11px;color:#888;">12 clips</div></div><span style="color:#ccc;font-size:18px;">›</span></div>
+  </div>
+</div>
+
+<!-- HUDL CLIPS -->
+<div id="s-hudl-clips" class="scr">
+  <div class="hbar" style="background:#111;"><button class="bbtn" onclick="goS('s-hudl-pl')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Select clips</span><button id="attach-btn" onclick="attachClips()" style="margin-left:auto;padding:4px 10px;background:#FF6B00;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;opacity:0.4;" disabled>Attach (0)</button></div>
+  <div class="body"><div id="clip-list"></div></div>
+</div>
+
+<!-- COACH HOME -->
+<div id="s-chome" class="scr">
+  <div class="hbar" style="background:#534AB7;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;" id="ch-badge">Coach</span></div>
+  <div class="hcont" style="background:#534AB7;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div class="htitle" id="ch-name">Mark Clarke</div><div class="hsub" id="ch-sub">Head Coach</div></div>
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;" id="ch-av">MC</div>
+    </div>
+  </div>
+  <div class="body" style="flex:1;">
+    <div class="ipill" style="background:#EEEDFE;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:12px;color:#26215C;">Receiving: <strong id="ch-pref-home">Squad video, Stats dashboard</strong></p><span style="margin-left:auto;font-size:11px;color:#534AB7;cursor:pointer;font-weight:600;" onclick="goS('s-cprefs')">Edit</span></div>
+    <div class="sec" style="margin-top:0;">Squad at a glance</div>
+    <div id="ch-squad"></div>
+    <div style="text-align:center;margin-top:4px;"><span style="font-size:12px;color:#534AB7;cursor:pointer;font-weight:600;" onclick="goS('s-csquad')">View full squad →</span></div>
+  </div>
+  <div class="nav">
+    <button class="ni actc" onclick="goS('s-chome')" style=""><svg viewBox="0 0 24 24" stroke-width="1.5" style="stroke:#534AB7;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span style="color:#534AB7;">Home</span></button>
+    <button class="ni" onclick="goS('s-csquad')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Squad</span></button>
+    <button class="ni" onclick="goS('s-cinbox')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni" onclick="goS('s-cprefs')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- COACH SQUAD -->
+<div id="s-csquad" class="scr">
+  <div class="hbar" style="background:#534AB7;"><button class="bbtn" onclick="goS('s-chome')">← Back</button><span style="margin:0 auto;font-size:14px;font-weight:500;color:#fff;">Full squad</span></div>
+  <div class="body"><div class="sec" style="margin-top:0;">All players</div><div id="csquad-list"></div></div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-chome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni actc" onclick="goS('s-csquad')"><svg viewBox="0 0 24 24" stroke-width="1.5" style="stroke:#534AB7;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span style="color:#534AB7;">Squad</span></button>
+    <button class="ni" onclick="goS('s-cinbox')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni" onclick="goS('s-cprefs')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- COACH INBOX -->
+<div id="s-cinbox" class="scr">
+  <div class="hbar" style="background:#534AB7;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;">Coach</span></div>
+  <div class="hcont" style="background:#534AB7;"><div class="htitle">My feedback</div><div class="hsub">Analysis sent to you by your analyst</div></div>
+  <div class="body">
+    <div class="ipill" style="background:#EEEDFE;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:12px;color:#26215C;">Receiving: <strong id="ch-pref-inbox">Squad video, Stats dashboard</strong></p><span style="margin-left:auto;font-size:11px;color:#534AB7;cursor:pointer;font-weight:600;" onclick="goS('s-cprefs')">Edit</span></div>
+    <div class="sec">Sent to me this week</div>
+    <div class="fbi" style="border-left:3px solid #534AB7;">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="ci-an-av">SA</div><div style="flex:1;"><div class="fifrom" id="ci-an-name">Sarah Adams · Analyst</div><div class="fitime">Today, 8:30am</div></div><span class="badge" style="background:#EEEDFE;color:#3C3489;">Squad video</span><div class="unread" style="background:#534AB7;"></div></div>
+      <div class="fiprev" id="ci-fb1">Tactical overview — pressing shape vs Rovers. 4 clips.</div>
+    </div>
+    <div class="fbi" style="border-left:3px solid #534AB7;">
+      <div class="fitop"><div class="av" style="background:#185FA5;" id="ci-an-av2">SA</div><div style="flex:1;"><div class="fifrom" id="ci-an-name2">Sarah Adams · Analyst</div><div class="fitime">Yesterday</div></div><span class="badge" style="background:#EEEDFE;color:#3C3489;">Stats</span><div class="unread" style="background:#534AB7;"></div></div>
+      <div class="fiprev" id="ci-fb2">Squad performance dashboard — GW30 breakdown.</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec">Player feedback sent this week</div>
+    <p style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.6;">Tap any player to see what they received.</p>
+    <div id="cinbox-players"></div>
+  </div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-chome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-csquad')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Squad</span></button>
+    <button class="ni actc"><svg viewBox="0 0 24 24" stroke-width="1.5" style="stroke:#534AB7;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span style="color:#534AB7;">Feedback</span></button>
+    <button class="ni" onclick="goS('s-cprefs')"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Prefs</span></button>
+  </div>
+</div>
+
+<!-- COACH PREFS -->
+<div id="s-cprefs" class="scr">
+  <div class="hbar" style="background:#534AB7;"><div class="logo-row"><div class="chain"><div class="d1"></div><div class="cl"></div><div class="d2"></div><div class="cl"></div><div class="d3"></div></div><span class="lname">Relay</span></div><span class="hbadge" style="margin-left:auto;">Coach</span></div>
+  <div class="hcont" style="background:#534AB7;"><div class="htitle">Your preferences</div><div class="hsub">How would you like to receive analysis?</div></div>
+  <div class="body">
+    <div style="background:#EEEDFE;border-radius:9px;padding:10px 13px;margin-bottom:14px;font-size:12px;color:#26215C;line-height:1.65;"><strong>Coach preferences differ from player preferences.</strong> Coaches recall as little as 42% of key events without support (Franks &amp; Miller, 1986).</div>
+    <div class="pgrid">
+      <div class="pc psel" id="cp-video" onclick="togCP('video')" style="border-color:#534AB7;background:#EEEDFE;"><div class="pi" style="background:#534AB7;"><svg viewBox="0 0 24 24" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div class="plbl">Squad video</div><div class="pdesc">Team shape &amp; tactics</div></div>
+      <div class="pc" id="cp-report" onclick="togCP('report')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div><div class="plbl">Tactical report</div><div class="pdesc">Written pre-session</div></div>
+      <div class="pc psel" id="cp-stats" onclick="togCP('stats')" style="border-color:#534AB7;background:#EEEDFE;"><div class="pi" style="background:#534AB7;"><svg viewBox="0 0 24 24" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="plbl">Stats dashboard</div><div class="pdesc">Squad aggregate data</div></div>
+      <div class="pc" id="cp-voice" onclick="togCP('voice')"><div class="pi"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div><div class="plbl">Voice briefing</div><div class="pdesc">Audio pre-match</div></div>
+    </div>
+    <button onclick="saveCP()" style="width:100%;padding:12px;background:#534AB7;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:500;cursor:pointer;">Save preferences</button>
+    <div class="divider"></div>
+    <div class="soblock"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#791F1F;">Sign out</div><div style="font-size:11px;color:#A32D2D;">Return to club selector</div></div><button onclick="goS('s-demo')" style="padding:5px 12px;background:#A32D2D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Sign out</button></div>
+  </div>
+  <div class="nav">
+    <button class="ni" onclick="goS('s-chome')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></button>
+    <button class="ni" onclick="goS('s-csquad')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Squad</span></button>
+    <button class="ni" onclick="goS('s-cinbox')"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Feedback</span></button>
+    <button class="ni actc"><svg viewBox="0 0 24 24" stroke-width="1.5" style="stroke:#534AB7;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span style="color:#534AB7;">Prefs</span></button>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const CLUBS={football:{colour:'#1D9E75',light:'#E1F5EE',dark:'#085041',name:'Demo FC',sport:'Football',analyst:{name:'Sarah Adams',av:'SA',sub:'2 players awaiting feedback'},coach:{name:'Mark Clarke',av:'MC',sub:'Head Coach · Football'},players:[{name:'Jamie Mitchell',av:'JM',col:'#1D9E75',pos:'CB',num:'#9',prefs:['video','stats'],pct:87,lbl:'87%',status:'Good',sbg:'#E1F5EE',sc:'#085041'},{name:'Lena Rios',av:'LR',col:'#BA7517',pos:'CM',num:'#6',prefs:['text','voice'],pct:74,lbl:'74%',status:'Review',sbg:'#FAEEDA',sc:'#633806'},{name:'Dan Kowalski',av:'DK',col:'#185FA5',pos:'ST',num:'#11',prefs:['video'],pct:91,lbl:'91%',status:'Good',sbg:'#E1F5EE',sc:'#085041'}],engagement:[{name:'Jamie Mitchell',status:'Opened — 2 items',col:'#085041',bg:'#E1F5EE'},{name:'Lena Rios',status:'Opened — 1 of 2',col:'#633806',bg:'#FAEEDA'},{name:'Dan Kowalski',status:'Not yet opened',col:'#791F1F',bg:'#FCEBEB'}],integrations:[{name:'Hudl',desc:'Video playlists',bg:'#FF6B00',lbl:'H',connect:true},{name:'Wyscout',desc:'Football scouting data',bg:'#534AB7',lbl:'W',connect:false}],stats:{title:'Weekly performance breakdown',sub:'Sarah Adams · Yesterday',notes:'Pass accuracy up 4% from last week. Final third at 72% — below 80% target.',cards:[{v:'87%',l:'Pass accuracy',bg:'#E1F5EE',c:'#085041'},{v:'6.4km',l:'Distance',bg:'#E6F1FB',c:'#0C447C'},{v:'14',l:'Duels won',bg:'#E1F5EE',c:'#085041'},{v:'3',l:'Errors to shot',bg:'#FAEEDA',c:'#633806'}],barTitle:'Pass accuracy by zone',bars:[{l:'Final 3rd',p:72,v:'72%'},{l:'Mid 3rd',p:91,v:'91%'},{l:'Def 3rd',p:96,v:'96%'}]},video:{title:'Defensive positioning — 2nd half',sub:'Sarah Adams · Today 9:14am',notes:'Watch your positioning when the ball switches wide. Clips 1 and 3 — the channel opens for their striker. Track the run earlier.',clips:[{name:'54:12 — defensive shape',dur:'0:18',total:18},{name:'67:44 — recovery run',dur:'0:22',total:22},{name:'78:03 — channel exposed',dur:'0:15',total:15}],moments:[{t:'54:12',l:'Shape when ball is wide',bg:'#EBF3FC',c:'#042C53',ic:'#185FA5'},{t:'67:44',l:'Good recovery run — positive',bg:'#E1F5EE',c:'#085041',ic:'#1D9E75'},{t:'78:03',l:'Channel exposed',bg:'#FAECE7',c:'#4A1B0C',ic:'#993C1D'}]}},cricket:{colour:'#1B458F',light:'#E6F1FB',dark:'#042C53',name:'County CC',sport:'Cricket',analyst:{name:'Tom Harding',av:'TH',sub:'3 players awaiting feedback'},coach:{name:'David Mills',av:'DM',sub:'Head Coach · Cricket'},players:[{name:'Alex Patel',av:'AP',col:'#1B458F',pos:'Batter',num:'#3',prefs:['video','stats'],pct:78,lbl:'78.4 avg',status:'Good',sbg:'#E6F1FB',sc:'#042C53'},{name:'Sam Bowden',av:'SB',col:'#BA7517',pos:'Bowler',num:'#7',prefs:['text','voice'],pct:65,lbl:'24.1 econ',status:'Review',sbg:'#FAEEDA',sc:'#633806'},{name:'Chris Wade',av:'CW',col:'#534AB7',pos:'All-rounder',num:'#5',prefs:['stats'],pct:84,lbl:'84 SR',status:'Good',sbg:'#E6F1FB',sc:'#042C53'}],engagement:[{name:'Alex Patel',status:'Opened — 2 items',col:'#085041',bg:'#E1F5EE'},{name:'Sam Bowden',status:'Opened — 1 of 2',col:'#633806',bg:'#FAEEDA'},{name:'Chris Wade',status:'Not yet opened',col:'#791F1F',bg:'#FCEBEB'}],integrations:[{name:'NVplay',desc:'Cricket video analysis',bg:'#1B458F',lbl:'NV',connect:true},{name:'PlayCricket',desc:'ECB live match data',bg:'#1D9E75',lbl:'PC',connect:true}],stats:{title:'Match scorecard breakdown',sub:'Tom Harding · Yesterday',notes:'Batting average up to 78.4. Strike rate at 84 is below T20 target of 130.',cards:[{v:'78.4',l:'Batting average',bg:'#E6F1FB',c:'#042C53'},{v:'84',l:'Strike rate',bg:'#FAEEDA',c:'#633806'},{v:'42%',l:'Boundary %',bg:'#E6F1FB',c:'#042C53'},{v:'2',l:'Wickets',bg:'#E1F5EE',c:'#085041'}],barTitle:'Runs by innings phase',bars:[{l:'Powerplay',p:68,v:'34'},{l:'Middle',p:84,v:'42'},{l:'Death',p:52,v:'26'}]},video:{title:'Batting technique — net session',sub:'Tom Harding · Today 10:30am',notes:'Front foot movement much improved. Clips 2 and 3 show backlift too high on short-pitched deliveries — costs reaction time.',clips:[{name:'Ideal setup — over 4',dur:'0:14',total:14},{name:'Backlift issue — over 7',dur:'0:11',total:11},{name:'Short ball — over 12',dur:'0:16',total:16}],moments:[{t:'Over 4',l:'Ideal setup — replicate this',bg:'#E1F5EE',c:'#085041',ic:'#1D9E75'},{t:'Over 7',l:'Backlift too high',bg:'#FAECE7',c:'#4A1B0C',ic:'#993C1D'},{t:'Over 12',l:'Short ball response needed',bg:'#FAEEDA',c:'#412402',ic:'#BA7517'}]}}};
+const FLABELS={video:'Video clip',stats:'Stats & graphs',text:'Written report',voice:'Voice note'};
+const SWATCHES=[{h:'#1D9E75',n:'Teal'},{h:'#C8102E',n:'Red'},{h:'#185FA5',n:'Royal Blue'},{h:'#034694',n:'Chelsea Blue'},{h:'#6CABDD',n:'Sky Blue'},{h:'#EF0107',n:'Arsenal Red'},{h:'#FF6B00',n:'Orange'},{h:'#7A263A',n:'Claret'},{h:'#1B458F',n:'Navy'},{h:'#111210',n:'Black'}];
+let club=null,pPrefs=['video','stats'],cpSel={video:true,stats:true};
+let uploadIdx=0,uploadFmt='video',uploadOverride=false;
+let isRec=false,recInt=null,recSecs=0,mediaRec=null,audioChunks=[];
+let vClip=0,vPlaying=false,vInt=null,vElapsed=0;
+const hudlSel=new Set();
+const HUDL=[{id:1,t:'54:12 — shape breakdown',s:'vs Rovers',d:'0:18'},{id:2,t:'67:44 — recovery run',s:'vs Rovers',d:'0:22'},{id:3,t:'78:03 — channel exposed',s:'vs Rovers',d:'0:15'},{id:4,t:'81:17 — transition shape',s:'vs Rovers',d:'0:14'}];
+
+function goS(id){document.querySelectorAll('.scr').forEach(s=>{s.classList.remove('on');s.style.display='none';});const el=document.getElementById(id);if(el){el.style.display='flex';el.classList.add('on');}if(id==='s-pvideo'&&club)buildVid();if(id==='s-pstats'&&club)buildStats();if(id==='s-upload'&&club)buildUpload();if(id==='s-hudl-clips')renderHudl();}
+function setCSS(c,l,d){const r=document.documentElement;r.style.setProperty('--c',c);r.style.setProperty('--cl',l);r.style.setProperty('--cd',d);}
+function loadClub(key){club=CLUBS[key];setCSS(club.colour,club.light,club.dark);document.getElementById('login-club').textContent=club.name;document.getElementById('login-sport').textContent=club.sport;document.getElementById('login-sub').textContent=club.name+' · Tap your role to sign in';const rcp=document.getElementById('rc-player');rcp.style.background=club.light;rcp.style.borderColor=club.colour;document.getElementById('rc-plbl').style.color=club.dark;goS('s-login');}
+
+function signInAs(role){
+  if(!club){showToast('Select a club first');return;}
+  const bc=role==='analyst'?'#185FA5':role==='coach'?'#534AB7':club.colour;
+  document.getElementById('signing-hbar').style.background=bc;
+  document.getElementById('sign-spinner').style.borderTopColor=bc;
+  document.getElementById('si-lbl').textContent='Signing in as '+role.charAt(0).toUpperCase()+role.slice(1)+'...';
+  document.getElementById('si-sub').textContent={analyst:'Loading upload and engagement tools',player:'Loading your feedback inbox',coach:'Loading squad overview'}[role];
+  goS('s-signing');
+  setTimeout(()=>{
+    setCSS(club.colour,club.light,club.dark);
+    if(role==='analyst')buildAnalyst();
+    else if(role==='player')buildPlayer();
+    else buildCoach();
+  },800);
+}
+
+function buildAnalyst(){
+  document.getElementById('ah-badge').textContent='Analyst · '+club.sport;
+  document.getElementById('ah-name').textContent=club.analyst.name;
+  document.getElementById('ah-av').textContent=club.analyst.av;
+  document.getElementById('ah-sub').textContent=club.analyst.sub;
+  const pl=document.getElementById('ah-players');pl.innerHTML='';
+  club.players.forEach((p,i)=>{
+    const tags=p.prefs.map(pr=>{const m={video:'#E6F1FB/#0C447C/Video',stats:'#EEEDFE/#3C3489/Stats',text:'#EAF3DE/#27500A/Text',voice:'#FAEEDA/#633806/Voice'};const[bg,col,lbl]=m[pr].split('/');return`<span class="badge" style="background:${bg};color:${col};margin-right:3px;">${lbl}</span>`;}).join('');
+    pl.innerHTML+=`<div class="plrow" onclick="openUpload(${i})"><div class="av" style="background:${p.col};width:34px;height:34px;font-size:12px;">${p.av}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${p.name} · ${p.pos}</div><div style="font-size:11px;margin-top:2px;">${tags}</div></div><span style="color:#ccc;font-size:18px;">›</span></div>`;
+  });
+  const eng=document.getElementById('ah-engagement');eng.innerHTML='';
+  club.engagement.forEach(e=>{eng.innerHTML+=`<div class="eng-row"><span style="font-size:12px;color:#666;">${e.name}</span><span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:${e.bg};color:${e.col};">${e.status}</span></div>`;});
+  const ints=document.getElementById('ah-integrations');ints.innerHTML='';
+  club.integrations.forEach(int=>{ints.innerHTML+=`<div class="introw"><div class="iicon" style="background:${int.bg};font-size:10px;font-weight:700;color:#fff;">${int.lbl}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${int.name}</div><div style="font-size:11px;color:#888;">${int.desc}</div></div>${int.connect?`<button onclick="goS('s-hudl-intro')" style="padding:5px 11px;background:${int.bg};color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Connect</button>`:`<span style="font-size:11px;color:#aaa;padding:3px 9px;border:0.5px solid #ddd;border-radius:20px;">Soon</span>`}</div>`;});
+  goS('s-ahome');
+}
+
+function buildPlayer(){
+  const p=club.players[0];
+  document.getElementById('ph-badge').textContent='Player · '+club.sport;
+  document.getElementById('ph-name').textContent=p.name;
+  document.getElementById('ph-num').textContent=p.num;
+  const an=club.analyst.name+' · Analyst',co=club.coach.name+' · Coach';
+  ['ph-an-name','ph-an-name2','pfb-an-name','pfb-an-name2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=an;});
+  ['ph-co-name','pfb-co-name'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=co;});
+  ['ph-an-av','ph-an-av2','pfb-an-av','pfb-an-av2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=club.analyst.av;});
+  const isCricket=club.sport==='Cricket';
+  ['ph-fb1','pfb-fb1'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=isCricket?'Batting technique — net session. 4 clips tagged.':'Defensive positioning — 2nd half. 3 clips tagged.';});
+  ['ph-fb2','pfb-fb2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=isCricket?'Match innings breakdown — average up to 78.4.':'Weekly breakdown — pass accuracy up 4%.';});
+  ['ph-fb3','pfb-fb3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=isCricket?'Good footwork at crease. Focus on short ball response.':'Good work on the press. Keep shape when transitioning.';});
+  goS('s-phome');
+}
+
+function buildCoach(){
+  document.getElementById('ch-badge').textContent='Coach · '+club.sport;
+  document.getElementById('ch-name').textContent=club.coach.name;
+  document.getElementById('ch-av').textContent=club.coach.av;
+  document.getElementById('ch-sub').textContent=club.coach.sub;
+  const sl=document.getElementById('ch-squad');sl.innerHTML='';
+  club.players.forEach(p=>{sl.innerHTML+=`<div class="plrow" onclick="goS('s-csquad')"><div class="av" style="background:${p.col};width:34px;height:34px;font-size:12px;">${p.av}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${p.name} · ${p.pos}</div><div class="pbar-wrap"><div class="pbar-track"><div class="pbar-fill" style="width:${p.pct}%;background:${club.colour};"></div></div><span style="font-size:10px;color:#888;">${p.lbl}</span></div></div><span style="font-size:11px;padding:3px 9px;background:${p.sbg};color:${p.sc};border-radius:20px;font-weight:600;">${p.status}</span></div>`;});
+  const fs=document.getElementById('csquad-list');if(fs){fs.innerHTML='';club.players.forEach(p=>{fs.innerHTML+=`<div class="plrow" onclick="goS('s-cinbox')"><div class="av" style="background:${p.col};width:34px;height:34px;font-size:12px;">${p.av}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${p.name}</div><div style="font-size:11px;color:#888;">${p.pos} · 2 feedback items this week</div></div><span style="color:#ccc;font-size:18px;">›</span></div>`;});}
+  const an=club.analyst.name+' · Analyst';
+  ['ci-an-name','ci-an-name2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=an;});
+  ['ci-an-av','ci-an-av2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=club.analyst.av;});
+  if(club.sport==='Cricket'){const e1=document.getElementById('ci-fb1');if(e1)e1.textContent='Tactical overview — batting order and bowling changes. 4 clips.';const e2=document.getElementById('ci-fb2');if(e2)e2.textContent='Squad performance — match scorecard breakdown.';}
+  const cp=document.getElementById('cinbox-players');if(cp){cp.innerHTML='';club.players.forEach(p=>{cp.innerHTML+=`<div class="plrow"><div class="av" style="background:${p.col};width:32px;height:32px;font-size:11px;">${p.av}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${p.name}</div><div style="font-size:11px;color:#888;">2 feedback items this week</div></div><span style="color:#ccc;font-size:18px;">›</span></div>`;});}
+  goS('s-chome');
+}
+
+function buildVid(){const v=club.video;document.getElementById('vfb-title').textContent=v.title;document.getElementById('vfb-sub').textContent=v.sub;document.getElementById('vfb-notes').innerHTML=`<p style="font-size:13px;color:#042C53;line-height:1.65;">${v.notes}</p>`;vClip=0;vElapsed=0;vPlaying=false;const th=document.getElementById('vfb-thumbs');th.innerHTML='';v.clips.forEach((c,i)=>{th.innerHTML+=`<div style="flex-shrink:0;"><div class="cti ${i===0?'active':''}" id="vct-${i}" onclick="selectVid(${i})" style="${i===0?'border-color:#185FA5;':''}"><div class="vid-lines"></div><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><div class="cti-lbl">${c.name.split('—')[0].trim()}</div></div>`;});const mo=document.getElementById('vfb-moments');mo.innerHTML='';v.moments.forEach((m,i)=>{mo.innerHTML+=`<div class="mrow" style="background:${m.bg};" onclick="selectVid(${i})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${m.ic}" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg><span style="font-size:11px;font-weight:600;color:${m.c};min-width:46px;">${m.t}</span><span style="font-size:12px;color:${m.c};">${m.l}</span><span style="margin-left:auto;font-size:10px;color:${m.ic};font-weight:600;">Watch →</span></div>`;});updateVidUI();}
+function buildStats(){const s=club.stats;document.getElementById('sfb-title').textContent=s.title;document.getElementById('sfb-sub').textContent=s.sub;document.getElementById('sfb-notes').innerHTML=`<p style="font-size:13px;color:#26215C;line-height:1.65;">${s.notes}</p>`;const sg=document.getElementById('sfb-cards');sg.innerHTML='';s.cards.forEach(c=>{sg.innerHTML+=`<div class="sc2" style="background:${c.bg};"><div class="sv" style="color:${c.c};">${c.v}</div><div class="sl">${c.l}</div></div>`;});document.getElementById('sfb-bar-title').textContent=s.barTitle;const bars=document.getElementById('sfb-bars');bars.innerHTML='';s.bars.forEach(b=>{bars.innerHTML+=`<div class="bar-row"><span class="blbl">${b.l}</span><div class="btrack"><div class="bfill" style="width:${b.p}%;background:${club.colour};"></div></div><span class="bval">${b.v}</span></div>`;});}
+
+function selectVid(i){stopVid();vClip=i;vElapsed=0;document.querySelectorAll('[id^="vct-"]').forEach((el,idx)=>{el.classList.toggle('active',idx===i);el.style.borderColor=idx===i?'#185FA5':'transparent';});updateVidUI();}
+function toggleVid(){if(vPlaying)stopVid();else startVid();}
+function startVid(){vPlaying=true;vInt=setInterval(()=>{vElapsed++;if(vElapsed>=club.video.clips[vClip].total){vElapsed=club.video.clips[vClip].total;stopVid();if(vClip<club.video.clips.length-1)setTimeout(()=>selectVid(vClip+1),600);}updateVidUI();},200);updateVidUI();}
+function stopVid(){vPlaying=false;if(vInt){clearInterval(vInt);vInt=null;}updateVidUI();}
+function updateVidUI(){const c=club.video.clips[vClip];const pct=vElapsed/c.total*100;const pf=document.getElementById('vpf');if(pf)pf.style.width=pct+'%';const s=vElapsed%60,m=Math.floor(vElapsed/60);const ts=c.total%60,tm=Math.floor(c.total/60);const vt=document.getElementById('vtime');if(vt)vt.textContent=m+':'+(s<10?'0':'')+s+' / '+tm+':'+(ts<10?'0':'')+ts;const vn=document.getElementById('vcname');if(vn)vn.textContent=c.name;const vl=document.getElementById('vlbl');if(vl)vl.textContent='Clip '+(vClip+1)+' of '+club.video.clips.length+' · '+c.dur;const pb=document.getElementById('vbtn');if(pb){if(vPlaying){pb.innerHTML='<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#111;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';}else{pb.innerHTML='<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:#111;margin-left:3px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>';}}}
+
+function openUpload(idx){uploadIdx=idx;uploadFmt=club.players[idx].prefs[0];uploadOverride=false;goS('s-upload');}
+function buildUpload(){
+  const p=club.players[uploadIdx];
+  const prefLabel='Prefers: '+p.prefs.map(pr=>({video:'Video clips',stats:'Stats & graphs',text:'Written report',voice:'Voice note'}[pr])).join(', ');
+  document.getElementById('upload-hdr').innerHTML=`<div class="av" style="background:${p.col};width:34px;height:34px;font-size:12px;">${p.av}</div><div><div style="font-size:14px;font-weight:600;color:#fff;">${p.name}</div><div style="font-size:11px;color:rgba(255,255,255,0.7);">${prefLabel}</div></div>`;
+  const pb=document.getElementById('upload-player-btns');pb.innerHTML='';
+  club.players.forEach((pl,i)=>{pb.innerHTML+=`<button onclick="switchPlayer(${i})" style="padding:6px 12px;border-radius:20px;border:1.5px solid ${i===uploadIdx?'#fff':'rgba(255,255,255,0.3)'};background:${i===uploadIdx?'rgba(255,255,255,0.2)':'none'};color:#fff;font-size:12px;font-weight:600;cursor:pointer;">${pl.av}</button>`;});
+  buildUploadTabs(p);renderUploadArea(p);
+}
+function switchPlayer(idx){uploadIdx=idx;uploadFmt=club.players[idx].prefs[0];uploadOverride=false;buildUpload();}
+function buildUploadTabs(p){const row=document.getElementById('upload-tabs');row.innerHTML='';const prefs=uploadOverride?['video','stats','text','voice']:p.prefs;prefs.forEach(f=>{const b=document.createElement('button');b.className='tab'+(f===uploadFmt?' active':'');b.textContent=FLABELS[f];b.onclick=()=>{stopRec();uploadFmt=f;buildUploadTabs(p);renderUploadArea(p);};row.appendChild(b);});if(!uploadOverride){const o=document.createElement('button');o.className='tab ov';o.textContent='+ Override';o.onclick=()=>{uploadOverride=true;buildUploadTabs(p);renderUploadArea(p);};row.appendChild(o);}}
+function renderUploadArea(p){const area=document.getElementById('upload-area');const nm=p.name.split(' ')[0];const C={video:{bg:'#EBF3FC',t:'#042C53',b:'#185FA5'},stats:{bg:'#EEEDFE',t:'#26215C',b:'#534AB7'},text:{bg:'#EAF3DE',t:'#173404',b:'#3B6D11'},voice:{bg:'#FAEEDA',t:'#412402',b:'#854F0B'}};const c=C[uploadFmt];const descs={video:`Upload a video clip for ${nm}.`,stats:`Enter ${nm}'s ${club.sport} performance stats.`,text:`${nm} prefers written analysis.`,voice:`Record or upload a voice note for ${nm}.`};let h=`<div style="border-left:3px solid ${c.b};border-radius:0 9px 9px 0;padding:10px 13px;margin-bottom:12px;background:${c.bg};font-size:12px;color:${c.t};line-height:1.65;">${descs[uploadFmt]}</div>`;if(uploadFmt==='video'){h+=`<div class="uzone" onclick="document.getElementById('uin').click()"><svg viewBox="0 0 24 24" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><p>Upload video clip</p><span>MP4, MOV, WebM</span></div><input type="file" id="uin" accept="video/*" style="display:none;" onchange="loadVF(event)"><div id="vprev"></div><div class="fg" style="margin-top:10px;"><label>Analyst notes</label><textarea placeholder="Add notes..."></textarea></div>`;}else if(uploadFmt==='stats'){const sc=club.sport==='Cricket'?[{l:'Batting average',v:'78.4'},{l:'Strike rate',v:'84'},{l:'Boundary %',v:'42%'},{l:'Runs',v:'67'},{l:'Wickets',v:'2'},{l:'Economy',v:'6.2'}]:[{l:'Pass accuracy',v:'87%'},{l:'Distance',v:'6.4km'},{l:'Duels won',v:'14'},{l:'Errors to shot',v:'3'},{l:'Final 3rd %',v:'72%'},{l:'Sprints',v:'22'}];h+=`<div class="sinputs">${sc.map(s=>`<div class="sinp"><label>${s.l}</label><input type="text" value="${s.v}"/></div>`).join('')}</div><div class="fg"><label>Analyst notes</label><textarea placeholder="Add context...">${club.stats.notes}</textarea></div>`;}else if(uploadFmt==='text'){h+=`<div class="fg"><label>Report title</label><input type="text" value="${club.sport==='Cricket'?'Batting technique review':'Pressing shape — vs Rovers'}"/></div><div class="fg"><label>Full report</label><textarea style="min-height:130px;">${club.sport==='Cricket'?`Good front foot movement ${nm}. Backlift too high on short-pitched deliveries.`:`Good energy in the press ${nm}. 3 instances of pressing too early in 2nd half.`}</textarea></div>`;}else{h+=`<div class="sec" style="margin-top:0;">Record a voice note</div><div style="background:#f8f8f6;border-radius:10px;padding:14px;margin-bottom:11px;"><div style="display:flex;align-items:center;gap:12px;"><button class="rec-btn idle" id="rbtn" onclick="toggleRec()"><svg viewBox="0 0 24 24" fill="none" stroke="#993C1D" stroke-width="2" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button><div><div class="rec-timer" id="rtimer">0:00</div><div style="font-size:11px;color:#aaa;margin-top:2px;" id="rstatus">Tap mic to start</div></div></div><div id="aprev"></div></div><div class="sec">Or upload audio</div><div class="uzone" onclick="document.getElementById('auin').click()"><svg viewBox="0 0 24 24" stroke-width="1.5" fill="none"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg><p>Upload audio file</p><span>MP3, M4A, WAV</span></div><input type="file" id="auin" accept="audio/*" style="display:none;" onchange="loadAU(event)">`;}area.innerHTML=h;}
+function loadVF(e){const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);const d=document.querySelector('#upload-area .uzone');if(d)d.style.display='none';const p=document.getElementById('vprev');if(p)p.innerHTML='<div class="vwrap"><video controls><source src="'+url+'" type="'+f.type+'"></video></div>';}
+function loadAU(e){const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);const p=document.getElementById('aprev');if(p)p.innerHTML='<audio controls style="width:100%;margin-top:6px;"><source src="'+url+'" type="'+f.type+'"></audio><p style="font-size:11px;color:var(--c);margin-top:3px;text-align:center;">'+f.name+' ready</p>';}
+function doSend(){const nm=club.players[uploadIdx].name.split(' ')[0];showToast(FLABELS[uploadFmt]+' sent to '+nm);setTimeout(()=>goS('s-ahome'),1000);}
+function toggleRec(){if(!isRec)startRec();else stopRec(true);}
+function startRec(){if(!navigator.mediaDevices){showToast('Mic not available');return;}navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{mediaRec=new MediaRecorder(stream);audioChunks=[];mediaRec.ondataavailable=e=>audioChunks.push(e.data);mediaRec.onstop=()=>{const blob=new Blob(audioChunks,{type:'audio/webm'});const url=URL.createObjectURL(blob);const p=document.getElementById('aprev');if(p)p.innerHTML='<audio controls style="width:100%;margin-top:6px;"><source src="'+url+'"></audio><p style="font-size:11px;color:var(--c);margin-top:3px;text-align:center;">Voice note ready</p>';stream.getTracks().forEach(t=>t.stop());};mediaRec.start();isRec=true;recSecs=0;const btn=document.getElementById('rbtn');const sts=document.getElementById('rstatus');if(btn){btn.classList.remove('idle');btn.classList.add('rec');}if(sts)sts.textContent='Recording — tap to stop';recInt=setInterval(()=>{recSecs++;const t=document.getElementById('rtimer');if(t)t.textContent=Math.floor(recSecs/60)+':'+(recSecs%60).toString().padStart(2,'0');},1000);}).catch(()=>showToast('Mic permission denied'));}
+function stopRec(save){isRec=false;if(recInt){clearInterval(recInt);recInt=null;}if(mediaRec&&mediaRec.state!=='inactive'){if(save)mediaRec.stop();else mediaRec.stream&&mediaRec.stream.getTracks().forEach(t=>t.stop());}const btn=document.getElementById('rbtn');const sts=document.getElementById('rstatus');if(btn){btn.classList.remove('rec');btn.classList.add('idle');}if(sts&&!save)sts.textContent='Tap mic to start';}
+function doHudl(){goS('s-hudl-conn');const ms=['Connecting to Hudl...','Verifying credentials...','Fetching playlists...','Syncing clips...'];let i=0;const iv=setInterval(()=>{i++;if(i<ms.length)document.getElementById('hmsg').textContent=ms[i];else{clearInterval(iv);goS('s-hudl-pl');}},650);}
+function renderHudl(){const list=document.getElementById('clip-list');list.innerHTML='<p style="font-size:12px;color:#888;margin-bottom:10px;">Defensive clips — vs Rovers</p>';HUDL.forEach(c=>{const row=document.createElement('div');row.className='cliprow'+(hudlSel.has(c.id)?' csel':'');row.innerHTML=`<div class="cthumb"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${c.t}</div><div style="font-size:10px;color:#888;">${c.s}</div></div><span style="font-size:10px;color:#aaa;margin-right:4px;">${c.d}</span><div class="ck ${hudlSel.has(c.id)?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>`;row.onclick=()=>{if(hudlSel.has(c.id))hudlSel.delete(c.id);else hudlSel.add(c.id);renderHudl();const b=document.getElementById('attach-btn');b.textContent='Attach ('+hudlSel.size+')';b.disabled=hudlSel.size===0;b.style.opacity=hudlSel.size===0?'0.4':'1';};list.appendChild(row);});}
+function attachClips(){if(hudlSel.size===0)return;showToast(hudlSel.size+' clip(s) attached');setTimeout(()=>goS('s-ahome'),900);}
+function togPP(t){const el=document.getElementById('pp-'+t);const i=pPrefs.indexOf(t);if(i>-1){pPrefs.splice(i,1);el.classList.remove('psel');}else{pPrefs.push(t);el.classList.add('psel');}}
+function savePP(){const m={video:'Video clips',text:'Written reports',voice:'Voice notes',stats:'Stats & graphs'};const s=pPrefs.map(p=>m[p]).join(', ')||'None';['pp-summary','pp-summary2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s;});goS('s-phome');showToast('Preferences saved');}
+function togCP(t){const el=document.getElementById('cp-'+t);if(cpSel[t]){delete cpSel[t];el.style.borderColor='#eee';el.style.background='#f8f8f6';el.querySelector('.pi').style.background='#e8e8e4';el.querySelector('.pi svg').style.stroke='#888';}else{cpSel[t]=true;el.style.borderColor='#534AB7';el.style.background='#EEEDFE';el.querySelector('.pi').style.background='#534AB7';el.querySelector('.pi svg').style.stroke='#fff';}}
+function saveCP(){const labels={video:'Squad video',report:'Tactical report',stats:'Stats dashboard',voice:'Voice briefing'};const summary=Object.keys(cpSel).map(p=>labels[p]).join(', ')||'None';['ch-pref-home','ch-pref-inbox'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=summary;});goS('s-chome');showToast('Preferences saved');}
+function applyColour(hex){setCSS(hex,hex+'18',hex);document.getElementById('hex-lbl').textContent=hex;document.getElementById('custom-col').value=hex;document.querySelectorAll('.sw').forEach(s=>s.classList.toggle('active',s.dataset.hex===hex));}
+function buildSwatches(){const g=document.getElementById('swatches');if(!g)return;SWATCHES.forEach(s=>{const el=document.createElement('div');el.style.cssText=`width:100%;aspect-ratio:1;border-radius:50%;cursor:pointer;border:3px solid transparent;background:${s.h};`;el.className='sw';el.dataset.hex=s.h;el.title=s.n;el.onclick=()=>applyColour(s.h);g.appendChild(el);});}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+buildSwatches();
+</script>
+</body>
+</html>
